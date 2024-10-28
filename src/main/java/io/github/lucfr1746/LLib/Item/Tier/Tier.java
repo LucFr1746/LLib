@@ -17,7 +17,7 @@ public enum Tier {
     SPECIAL("SPECIAL", ChatColor.RED),
     VERY_SPECIAL("VERY SPECIAL", ChatColor.RED);
 
-    private final String tierString;
+    private final String nameHolder;
     private final ChatColor color;
 
     private static final List<Tier> ordered;
@@ -26,8 +26,8 @@ public enum Tier {
         ordered = new ArrayList<>(Arrays.asList(COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, MYTHIC, DIVINE, SPECIAL, VERY_SPECIAL));
     }
 
-    public String getString() {
-        return tierString;
+    public String getNameHolder() {
+        return nameHolder;
     }
 
     public ChatColor getColor() {
@@ -43,8 +43,8 @@ public enum Tier {
         return ordered.get(ordinal() - 1);
     }
 
-    Tier(String tierString, ChatColor color) {
-        this.tierString = tierString;
+    Tier(String nameHolder, ChatColor color) {
+        this.nameHolder = nameHolder;
         this.color = color;
     }
 }

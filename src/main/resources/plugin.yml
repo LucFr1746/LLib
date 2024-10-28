@@ -2,3 +2,7 @@ name: LLib
 version: '1.0-SNAPSHOT'
 main: io.github.lucfr1746.LLib.LLib
 api-version: '1.21'
+
+depend: [NBTAPI]
+
+load: STARTUP

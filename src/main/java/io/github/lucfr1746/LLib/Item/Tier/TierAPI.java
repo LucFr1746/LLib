@@ -12,13 +12,15 @@ import java.util.List;
 public class TierAPI {
 
     private final ItemStack itemStack;
+    private final Tier currentTier;
 
-    public ItemStack getItemStack() {
+    public @NotNull ItemStack getItemStack() {
         return itemStack;
     }
 
     public TierAPI(@NotNull ItemStack itemStack) {
         this.itemStack = itemStack;
+        this.currentTier = getTier();
     }
 
     public void setTier(@NotNull Tier tier) {
@@ -43,29 +45,18 @@ public class TierAPI {
     }
 
     public List<Tier> getNearTiersCircle() {
-        Tier currentTier = getTier();
-
         List<Tier> result = new ArrayList<>();
-        Tier[] tiers = Tier.values();
-        int numCategories = tiers.length;
-        int currentIndex = currentTier.ordinal();
 
-        // Find the front tier, skipping VERRY_SPECIAL
-        int frontIndex = (currentIndex - 1 + numCategories) % numCategories;
-        while (tiers[frontIndex] == Tier.VERY_SPECIAL) {
-            frontIndex = (frontIndex - 1 + numCategories) % numCategories;
-        }
-        Tier frontTier = tiers[frontIndex];
+        Tier frontTier;
+        if (this.currentTier == Tier.COMMON) frontTier = Tier.SPECIAL;
+        else frontTier = this.currentTier.getDowngrade();
 
-        // Find the back tier, skipping VERRY_SPECIAL
-        int backIndex = (currentIndex + 1) % numCategories;
-        while (tiers[backIndex] == Tier.VERY_SPECIAL) {
-            backIndex = (backIndex + 1) % numCategories;
-        }
-        Tier backTier = tiers[backIndex];
+        Tier backTier;
+        if (this.currentTier == Tier.SPECIAL) backTier = Tier.COMMON;
+        else backTier = this.currentTier.getUpgrade();
 
         result.add(frontTier);
-        result.add(currentTier);
+        result.add(this.currentTier);
         result.add(backTier);
 
         return result;
