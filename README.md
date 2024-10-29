@@ -23,7 +23,7 @@ Maintained by LucFr1746.
     </a>
 <br/>
 
-<a href="https://github.com/LucFr1746/LWardrobe/wiki/Credits">
+<a href="#">
     <img src="https://img.shields.io/badge/Contributors-View%20Credits-skyblue?style=for-the-badge" alt="Contributors listed in Credits Page">
 </a>
 
