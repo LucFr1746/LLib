@@ -59,7 +59,7 @@ public class EnchantmentAPI {
 
         HolderSet.Named<Item> supportedItems = createItemSet("enchant_supported", enchantId, supportedMaterials);
         HolderSet.Named<Item> primaryItems = createItemSet("enchant_primary", enchantId, primaryMaterials);
-        net.minecraft.world.entity.EquipmentSlotGroup[] slots = nmsSlots(new EquipmentSlot[]{ equipmentSlot });
+        net.minecraft.world.entity.EquipmentSlotGroup[] slots = convertToNmsSlots(new EquipmentSlot[]{ equipmentSlot });
 
         Enchantment.Cost minimumCost = new Enchantment.Cost(minCost, (int) Math.floor(costMultiplier * maxCost));
         Enchantment.Cost maximumCost = new Enchantment.Cost(maxCost, (int) Math.floor(costMultiplier * maxCost));
@@ -102,9 +102,6 @@ public class EnchantmentAPI {
             Holder.Reference<Item> holder = items.getHolder(location).orElse(null);
             if (holder == null) return;
 
-            // We must reassign the 'tags' field value because of the HolderSet#contains(Holder<T> holder) behavior.
-            // It checks if Holder.Reference.is(this.key) -> Holder.Reference.tags.contains(key). Where 'key' is our custom key created above.
-            // So, even if our HolderSet content is filled with items, we have to include their tag to the actual items in registry.
             Set<TagKey<Item>> holderTags = new HashSet<>((Set<TagKey<Item>>) Objects.requireNonNull(Reflex.getFieldValue(holder, HOLDER_REFERENCE_TAGS_FIELD)));
             holderTags.add(customKey);
             Reflex.setFieldValue(holder, HOLDER_REFERENCE_TAGS_FIELD, holderTags);
@@ -117,12 +114,10 @@ public class EnchantmentAPI {
         return customItems;
     }
 
-    private net.minecraft.world.entity.EquipmentSlotGroup[] nmsSlots(EquipmentSlot[] slots) {
-        net.minecraft.world.entity.EquipmentSlotGroup[] nmsSlots = new net.minecraft.world.entity.EquipmentSlotGroup[slots.length];
-        for (int i = 0; i < slots.length; i++) {
-            nmsSlots[i] = CraftEquipmentSlot.getNMSGroup(slots[i].getGroup());
-        }
-        return nmsSlots;
+    private net.minecraft.world.entity.EquipmentSlotGroup[] convertToNmsSlots(EquipmentSlot[] slots) {
+        return Arrays.stream(slots)
+                .map(slot -> CraftEquipmentSlot.getNMSGroup(slot.getGroup()))
+                .toArray(net.minecraft.world.entity.EquipmentSlotGroup[]::new);
     }
 
     private void addInTag(TagKey<Enchantment> tagKey, Holder.Reference<Enchantment> reference) {
@@ -163,8 +158,7 @@ public class EnchantmentAPI {
 
         exclusives.forEach(enchantIds -> {
             ResourceKey<Enchantment> key = key(enchantIds);
-            Holder.Reference<Enchantment> reference = ENCHANTMENT_REGISTRY.getHolder(key).orElse(null);
-            if (reference != null) contents.add(reference);
+            ENCHANTMENT_REGISTRY.getHolder(key).ifPresent(contents::add);
         });
 
         Reflex.setFieldValue(exclusiveSet, HOLDER_SET_DIRECT_CONTENTS_FIELD, contents);

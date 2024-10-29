@@ -1,19 +1,18 @@
 package io.github.lucfr1746.LLib.Item.Category;
 
-import de.tr7zw.nbtapi.NBT;
-import de.tr7zw.nbtapi.iface.ReadWriteNBT;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class CategoryAPI {
 
     private final ItemStack itemStack;
-    private final Category currentCategory;
+    private Category currentCategory;
 
     public @NotNull ItemStack getItemStack() {
         return this.itemStack;
@@ -24,11 +23,13 @@ public class CategoryAPI {
         this.currentCategory = getCategory();
     }
 
-    public void setCategory(@NotNull Category category) {
-        if (this.itemStack.getType() == Material.AIR) return;
+    public CategoryAPI setCategory(@NotNull Category category) {
+        if (this.itemStack.getType() == Material.AIR) return this;
         NBT.modify(this.itemStack, nbt -> {
             nbt.getOrCreateCompound("ExtraAttributes").setString("category", category.name());
+            this.currentCategory = category;
         });
+        return this;
     }
 
     public Category getCategory() {

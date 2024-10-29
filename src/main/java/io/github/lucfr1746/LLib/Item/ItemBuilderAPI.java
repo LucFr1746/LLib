@@ -1,8 +1,8 @@
 package io.github.lucfr1746.LLib.Item;
 
-import de.tr7zw.nbtapi.NBT;
-import de.tr7zw.nbtapi.iface.ReadWriteNBT;
-import de.tr7zw.nbtapi.iface.ReadWriteNBTCompoundList;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBTCompoundList;
 import io.github.lucfr1746.LLib.Item.Category.Category;
 import io.github.lucfr1746.LLib.Item.Category.CategoryAPI;
 import io.github.lucfr1746.LLib.Item.Tier.Tier;
@@ -10,14 +10,9 @@ import io.github.lucfr1746.LLib.Item.Tier.TierAPI;
 import io.github.lucfr1746.LLib.Text.TextAPI;
 import io.github.lucfr1746.LLib.Utils.UtilsAPI;
 import net.md_5.bungee.api.ChatColor;
-import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
