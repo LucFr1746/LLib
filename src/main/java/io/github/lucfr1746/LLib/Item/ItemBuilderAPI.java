@@ -7,11 +7,10 @@ import io.github.lucfr1746.LLib.Item.Category.Category;
 import io.github.lucfr1746.LLib.Item.Category.CategoryAPI;
 import io.github.lucfr1746.LLib.Item.Tier.Tier;
 import io.github.lucfr1746.LLib.Item.Tier.TierAPI;
-import io.github.lucfr1746.LLib.Text.TextAPI;
+import io.github.lucfr1746.LLib.Utils.TextAPI;
 import io.github.lucfr1746.LLib.Utils.UtilsAPI;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -26,33 +25,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * API for creating and manipulating ItemStacks in a simplified way.
- * <p>
- * This class provides methods to modify various aspects of an ItemStack,
- * including its type, amount, display name, lore, and specific NBT data.
- * It also supports custom features like setting textures on player heads.
- *
- * <p>
- * Hypixel Skyblock Items Format
- *
- * <p>
- * Usage example:
- * <pre>
- * ItemBuilderAPI itemAPI = new ItemCreationAPI(Material.DIAMOND_SWORD)
- *     .setDisplayName("&6Epic Sword")
- *     .setAmount(1);
- * ItemStack item = itemAPI.build();
- * </pre>
- *
- * @author LucFr1746
- * @version 1.0
- */
 public class ItemBuilderAPI {
 
-    private final @NotNull ItemStack itemStack;
+    private final ItemStack itemStack;
     private String displayName;
     private String internalName;
+    private String skullTexture;
+    private String description;
 
     private Tier tier;
     private List<Tier> nearestTiers;
@@ -61,7 +40,6 @@ public class ItemBuilderAPI {
     private Category defaultCategory;
     private List<Category> nearestCategories;
 
-    private String skullTexture;
     private boolean isDungeonItem;
     private boolean isLoreNumbered;
     private boolean isGlowing;
@@ -71,81 +49,83 @@ public class ItemBuilderAPI {
 
     public ItemBuilderAPI(@NotNull ItemStack itemStack) {
         this.itemStack = itemStack;
-        recognizeItem();
+        initializeItem();
     }
 
     public ItemBuilderAPI(@NotNull Material material) {
-        this.itemStack = new ItemStack(material);
-        recognizeItem();
+        this(new ItemStack(material));
     }
 
     public ItemBuilderAPI() {
-        this.itemStack = new ItemStack(Material.AIR);
-        recognizeItem();
+        this(new ItemStack(Material.AIR));
     }
 
-    public ItemBuilderAPI from(@NotNull Material material) {
-        return new ItemBuilderAPI(material);
+    private void initializeItem() {
+        loadBasicProperties();
+        loadTierData();
+        loadCategoryData();
+        loadItemUtilsData();
     }
 
-    public ItemBuilderAPI recognizeItem() {
+    private void loadBasicProperties() {
         this.displayName = getDisplayName();
         this.internalName = getInternalName();
         this.skullTexture = getSkullTexture();
+        this.description = getDescription();
+    }
 
-        TierAPI tierAPI = new TierAPI(this.itemStack);
+    private void loadTierData() {
+        TierAPI tierAPI = new TierAPI(itemStack);
         this.tier = tierAPI.getTier();
         this.nearestTiers = tierAPI.getNearTiersCircle();
+    }
 
-        CategoryAPI categoryAPI = new CategoryAPI(this.itemStack);
+    private void loadCategoryData() {
+        CategoryAPI categoryAPI = new CategoryAPI(itemStack);
         this.category = categoryAPI.getCategory();
         this.defaultCategory = categoryAPI.getDefaultCategory();
         this.nearestCategories = categoryAPI.getNearCategoriesCircle();
+    }
 
-        ItemUtilsAPI itemUtilsAPI = new ItemUtilsAPI(this.itemStack);
+    private void loadItemUtilsData() {
+        ItemUtilsAPI itemUtilsAPI = new ItemUtilsAPI(itemStack);
         this.isDungeonItem = itemUtilsAPI.isDungeonItem();
         this.isLoreNumbered = itemUtilsAPI.isLoreNumbered();
         this.isGlowing = itemUtilsAPI.isGlowing();
         this.isUnique = itemUtilsAPI.isUnique();
         this.isRecombobulated = itemUtilsAPI.isRecombobulated();
         this.timestamp = itemUtilsAPI.getTimestamp();
-        return this;
     }
 
     public @NotNull ItemStack build() {
-        if (category == Category.UNCLASSIFIED) return this.itemStack;
+        if (this.category == Category.UNCLASSIFIED) return this.itemStack;
 
-        getItemMeta().setDisplayName(this.displayName);
-
-//        net.minecraft.world.item.ItemStack test = CraftItemStack.asNMSCopy(this.itemStack);
-//        @NotNull ItemEnchantments enchantments = Objects.requireNonNull(test.get(DataComponents.ENCHANTMENTS));
-//
-//        for (Map.Entry<Holder<Enchantment>, Integer> entry : enchantments.entrySet()) {
-//            Holder<Enchantment> enchantmentHolder = entry.getKey();
-//            Enchantment enchantment = enchantmentHolder.value();
-//            enchantment.definition(); // -> return all the definitions of the Enchantment
-//        }
+        setDisplayName(this.displayName);
 
         List<String> finalLores = new ArrayList<>();
         if (getType().name().startsWith("LEATHER")) finalLores.add("&7Color: " + getLeatherArmorColor());
 
     // Category description
         if (!finalLores.isEmpty()) finalLores.add("");
-        String categoryDes = category.getDescription();
+        String categoryDes = this.category.getDescription();
         if (!categoryDes.isBlank()) finalLores.add(categoryDes);
     // Rarity lore
-        String rarityLore = tier.getNameHolder() + (isDungeonItem ? " DUNGEON" + (category == Category.NONE ? " ITEM" : "") : "");
-        rarityLore += category.getNameHolder().isBlank() ? "" : " " + category.getNameHolder();
-        if (isRecombobulated) {
-            ChatColor colorCode = tier.getUpgrade().getColor();
+        String rarityLore = this.tier.getNameHolder() + (this.isDungeonItem ? " DUNGEON" + (this.category == Category.NONE ? " ITEM" : "") : "");
+        rarityLore += this.category.getNameHolder().isBlank() ? "" : " " + this.category.getNameHolder();
+        if (this.isRecombobulated) {
+            ChatColor colorCode = this.tier.getUpgrade().getColor();
             String obfuscatedChar = colorCode + "" + ChatColor.BOLD + ChatColor.MAGIC + "a";
             rarityLore = obfuscatedChar + " " + colorCode + ChatColor.BOLD + rarityLore + " " + obfuscatedChar;
         } else {
-            rarityLore = tier.getColor() + "&l" + rarityLore;
+            rarityLore = this.tier.getColor() + "&l" + rarityLore;
         }
         finalLores.add(rarityLore);
 
         return setLores(finalLores).setAllFlags().itemStack;
+    }
+
+    public @NotNull ItemMeta getItemMeta() {
+        return Objects.requireNonNull(this.itemStack.getItemMeta(), "ItemMeta cannot be null!");
     }
 
     public ItemBuilderAPI setType(@NotNull Material material) {
@@ -161,52 +141,57 @@ public class ItemBuilderAPI {
         return this.itemStack.getType().name();
     }
 
-    public ItemBuilderAPI setItemMeta(@NotNull ItemMeta meta) {
-        this.itemStack.setItemMeta(meta);
-        return this;
-    }
-
-    public @NotNull ItemMeta getItemMeta() {
-        return Objects.requireNonNull(this.itemStack.getItemMeta());
-    }
-
     public ItemBuilderAPI setAmount(int amount) {
+        if (isInvalidItem()) return null;
         this.itemStack.setAmount(amount);
         return this;
     }
 
     public int getAmount() {
+        if (isInvalidItem()) return -1;
         return this.itemStack.getAmount();
     }
 
     public ItemBuilderAPI setDamaged(int value) {
-        if (isInvalidItem() || value < 0) return this;
+        if (isInvalidItem() || value < 0) return null;
+        if (getType().getMaxDurability() == 0) {
+            throw new IllegalArgumentException("The item have no durability!");
+        }
 
-        ItemMeta meta = getItemMeta();
-        if (meta instanceof Damageable damage) {
+        ItemMeta itemMeta = getItemMeta();
+        if (itemMeta instanceof Damageable damage) {
             damage.setDamage(value);
-            setItemMeta(meta);
+            this.itemStack.setItemMeta(damage);
+        } else {
+            throw new IllegalArgumentException("The item have no durability!");
         }
         return this;
     }
 
     public int getDamaged() {
-        if (isInvalidItem()) return 0;
+        if (isInvalidItem()) return -1;
+        if (getType().getMaxDurability() == 0) return 0;
 
-        ItemMeta meta = getItemMeta();
-        if (meta instanceof Damageable damage) {
+        ItemMeta itemMeta = getItemMeta();
+        if (itemMeta instanceof Damageable damage) {
             return damage.getDamage();
+        } else {
+            throw new IllegalArgumentException("The item have no durability!");
         }
-        return 0;
     }
 
     public ItemBuilderAPI setMaxDurability(int value) {
-        if (isInvalidItem() || value < 0) return this;
+        if (isInvalidItem() || value < 0) return null;
+        if (getType().getMaxDurability() == 0) {
+            throw new IllegalArgumentException("The item have no durability!");
+        }
 
-        ItemMeta meta = getItemMeta();
-        if (meta instanceof Damageable damage) {
+        ItemMeta itemMeta = getItemMeta();
+        if (itemMeta instanceof Damageable damage) {
             damage.setMaxDamage(value);
-            setItemMeta(meta);
+            this.itemStack.setItemMeta(damage);
+        } else {
+            throw new IllegalArgumentException("The item have no durability!");
         }
         return this;
     }
@@ -214,20 +199,19 @@ public class ItemBuilderAPI {
     public int getMaxDurability() {
         if (isInvalidItem()) return 0;
 
-        ItemMeta meta = getItemMeta();
-        if (meta.isUnbreakable()) return -1;
-        if (meta instanceof Damageable damage) {
-            return damage.hasMaxDamage() ? damage.getMaxDamage() : getType().getMaxDurability();
+        ItemMeta itemMeta = getItemMeta();
+        if (itemMeta.isUnbreakable()) return -1;
+
+        if (itemMeta instanceof Damageable damage) {
+            return damage.getMaxDamage();
+        } else {
+            throw new IllegalArgumentException("The item have no durability!");
         }
-        return 0;
     }
 
     public ItemBuilderAPI setUnbreakable(boolean value) {
-        if (isInvalidItem()) return this;
-
-        ItemMeta meta = getItemMeta();
-        meta.setUnbreakable(value);
-        setItemMeta(meta);
+        if (isInvalidItem()) return null;
+        getItemMeta().setUnbreakable(value);
         return this;
     }
 
@@ -236,10 +220,68 @@ public class ItemBuilderAPI {
         return getItemMeta().isUnbreakable();
     }
 
+    public ItemBuilderAPI setFlag(ItemFlag flag) {
+        if (isInvalidItem()) return null;
+
+        ItemMeta itemMeta = getItemMeta();
+        itemMeta.addItemFlags(flag);
+        this.itemStack.setItemMeta(itemMeta);
+        return this;
+    }
+
+    public ItemBuilderAPI removeFlag(ItemFlag flag) {
+        if (isInvalidItem()) return null;
+
+        ItemMeta itemMeta = getItemMeta();
+        if (itemMeta.hasItemFlag(flag))
+            itemMeta.removeItemFlags(flag);
+        this.itemStack.setItemMeta(itemMeta);
+        return this;
+    }
+
+    public ItemBuilderAPI setAllFlags() {
+        if (isInvalidItem()) return null;
+
+        ItemMeta itemMeta = getItemMeta();
+        for (ItemFlag flag : ItemFlag.values()) {
+            itemMeta.addItemFlags(flag);
+        }
+        this.itemStack.setItemMeta(itemMeta);
+        return this;
+    }
+
+    public ItemBuilderAPI removeAllFlags() {
+        if (isInvalidItem()) return null;
+
+        ItemMeta itemMeta = getItemMeta();
+        for (ItemFlag flag : ItemFlag.values()) {
+            if (itemMeta.hasItemFlag(flag))
+                itemMeta.removeItemFlags(flag);
+        }
+        this.itemStack.setItemMeta(itemMeta);
+        return this;
+    }
+
+    public ItemBuilderAPI setHideTooltip(boolean value) {
+        if (isInvalidItem()) return null;
+
+        ItemMeta itemMeta = getItemMeta();
+        itemMeta.setHideTooltip(value);
+        this.itemStack.setItemMeta(itemMeta);
+        return this;
+    }
+
+    public boolean isHideTooltip() {
+        if (isInvalidItem()) return false;
+        return getItemMeta().isHideTooltip();
+    }
+
     public ItemBuilderAPI setPotionType(@NotNull PotionType potType) {
+        if (isInvalidItem()) return null;
+
         PotionMeta potionMeta = (PotionMeta) getItemMeta();
         potionMeta.setBasePotionType(potType);
-        setItemMeta(potionMeta);
+        this.itemStack.setItemMeta(potionMeta);
         return this;
     }
 
@@ -248,26 +290,29 @@ public class ItemBuilderAPI {
     }
 
     public ItemBuilderAPI setLeatherArmorColor(String hexColor) {
-        if (!(getItemMeta() instanceof LeatherArmorMeta meta)) {
+        if (isInvalidItem()) return null;
+
+        if (getItemMeta() instanceof LeatherArmorMeta leatherArmorMeta) {
+            leatherArmorMeta.setColor(new UtilsAPI().hexToColor(hexColor));
+            this.itemStack.setItemMeta(leatherArmorMeta);
+        } else {
             throw new IllegalArgumentException("The item must be a leather armor piece");
         }
-
-        Color color = new UtilsAPI().hexToColor(hexColor);
-        meta.setColor(color);
-        setItemMeta(meta);
         return this;
     }
 
     public String getLeatherArmorColor() {
-        if (!(getItemMeta() instanceof LeatherArmorMeta meta)) {
+        if (isInvalidItem()) return null;
+
+        if (getItemMeta() instanceof LeatherArmorMeta leatherArmorMeta) {
+            return new UtilsAPI().colorToHex(leatherArmorMeta.getColor());
+        } else {
             throw new IllegalArgumentException("The item must be a leather armor piece");
         }
-        Color color = meta.getColor();
-        return new UtilsAPI().colorToHex(color);
     }
 
     public ItemBuilderAPI setSkullTexture(String texture) {
-        if (getType() != Material.PLAYER_HEAD) return this;
+        if (isInvalidItem() || getType() != Material.PLAYER_HEAD) return null;
 
         NBT.modifyComponents(this.itemStack, nbt -> {
             ReadWriteNBT profileNbt = nbt.getOrCreateCompound("minecraft:profile");
@@ -287,90 +332,59 @@ public class ItemBuilderAPI {
             if (textureCompound != null) {
                 textureCompound.setString("value", texture); // Update existing texture
             } else {
-                // Add a new 'textures' compound if not found
                 ReadWriteNBT newTextureCompound = propertiesList.addCompound();
                 newTextureCompound.setString("name", "textures");
                 newTextureCompound.setString("value", texture);
-                this.skullTexture = texture;
             }
+            this.skullTexture = texture;
         });
         return this;
     }
 
     public String getSkullTexture() {
-        if (getType() != Material.PLAYER_HEAD) return "none";
+        if (isInvalidItem() || getType() != Material.PLAYER_HEAD) return null;
 
         return NBT.modifyComponents(this.itemStack, nbt -> {
             ReadWriteNBT profileNbt = nbt.getCompound("minecraft:profile");
-            if (profileNbt == null) return "none";
+            if (profileNbt == null) return "NONE"; // Return "none" if the profile is missing
 
             // Get the 'properties' list (no casting)
             ReadWriteNBTCompoundList propertiesList = profileNbt.getCompoundList("properties");
-            if (propertiesList == null || propertiesList.isEmpty()) return "none"; // Return "none" if properties list is empty
+            if (propertiesList == null || propertiesList.isEmpty()) return "NONE"; // Return "none" if properties list is empty
 
             // Get the first compound in the properties list
             ReadWriteNBT propertiesNbt = propertiesList.get(0); // No need to cast to List<ReadWriteNBT>
 
             // Return the texture value or "none" if it's not found
-            return propertiesNbt.getOrDefault("value", "none");
+            return propertiesNbt.getOrDefault("value", "NONE");
         });
     }
 
     public ItemBuilderAPI removeSkullTexture() {
-        if (getType() != Material.PLAYER_HEAD) return this;
+        if (isInvalidItem() || getType() != Material.PLAYER_HEAD) return null;
 
         NBT.modifyComponents(this.itemStack, nbt -> {
-            if (nbt.hasTag("minecraft:profile"))
+            if (nbt.hasTag("minecraft:profile")) {
                 nbt.removeKey("minecraft:profile");
+            }
         });
         return this;
     }
 
-    public ItemBuilderAPI setFlag(ItemFlag flag) {
-        ItemMeta meta = getItemMeta();
-        meta.addItemFlags(flag);
-        setItemMeta(meta);
-        return this;
-    }
-
-    public ItemBuilderAPI removeFlag(ItemFlag flag) {
-        ItemMeta meta = getItemMeta();
-        meta.removeItemFlags(flag);
-        setItemMeta(meta);
-        return this;
-    }
-
-    public ItemBuilderAPI setAllFlags() {
-        ItemMeta meta = getItemMeta();
-        for (ItemFlag flag : ItemFlag.values()) {
-            meta.addItemFlags(flag);
-        }
-        setItemMeta(meta);
-        return this;
-    }
-
-    public ItemBuilderAPI removeAllFlags() {
-        ItemMeta meta = getItemMeta();
-        for (ItemFlag flag : ItemFlag.values()) {
-            meta.removeItemFlags(flag);
-        }
-        setItemMeta(meta);
-        return this;
-    }
-
-    public ItemBuilderAPI setDisplayName(String displayName) {
-        return setDisplayName(displayName, false);
-    }
-
     public ItemBuilderAPI setDisplayName(String name, boolean force) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
 
-        if (force) {
-            this.displayName = new TextAPI(name).colorRecognise().build();
-        } else {
-            this.displayName = new TextAPI(name).colorRecognise().stripColor().build();
-            this.displayName = isRecombobulated ? new TextAPI(this.displayName).setColor(tier.getUpgrade().getColor()).build() : new TextAPI(this.displayName).setColor(tier.getColor()).build();
+        this.displayName = new TextAPI(name).colorRecognise().build();
+
+        if (!force) {
+            this.displayName = new TextAPI(this.displayName).stripColor().build();
+            this.displayName = isRecombobulated
+                    ? new TextAPI(this.displayName).setColor(tier.getUpgrade().getColor()).build()
+                    : new TextAPI(this.displayName).setColor(tier.getColor()).build();
         }
+        ItemMeta itemMeta = getItemMeta();
+        itemMeta.setDisplayName(this.displayName);
+        this.itemStack.setItemMeta(itemMeta);
 
         NBT.modify(this.itemStack, nbt -> {
             nbt.setString("display name", this.displayName);
@@ -378,8 +392,23 @@ public class ItemBuilderAPI {
         return this;
     }
 
+    public ItemBuilderAPI setDisplayName(String displayName) {
+        return setDisplayName(displayName, false);
+    }
+
+    public String getMaterialName() {
+        if (isInvalidItem()) return null;
+
+        return ChatColor.translateAlternateColorCodes('&', "&f" +
+                Arrays.stream(getType().name().toLowerCase().split("_"))
+                        .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
+                        .collect(Collectors.joining(" "))
+        );
+    }
+
     public String getDisplayName() {
-        if (isInvalidItem()) return "";
+        if (isInvalidItem()) return null;
+
         return NBT.modify(this.itemStack, nbt -> {
             return nbt.getOrDefault("display name", getMaterialName());
         });
@@ -389,112 +418,114 @@ public class ItemBuilderAPI {
         return new TextAPI(getDisplayName()).stripColor().build();
     }
 
-    public String getMaterialName() {
-        if (isInvalidItem()) return "";
-        return ChatColor.translateAlternateColorCodes('&', "&f"
-                + Arrays.stream(getType().name().toLowerCase().split("_"))
-                .map(word -> Character.toUpperCase(word.charAt(0)) + word.substring(1))
-                .collect(Collectors.joining(" ")));
-    }
-
     public ItemBuilderAPI setInternalName(String internalName) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
+
         NBT.modify(this.itemStack, nbt -> {
-            nbt.setString("internalName", internalName);
-            this.internalName = internalName;
+            nbt.setString("internalName", this.internalName);
         });
+        this.internalName = internalName;
         return this;
     }
 
     public String getInternalName() {
-        if (isInvalidItem()) return "";
+        if (isInvalidItem()) return null;
+
         return NBT.modify(this.itemStack, nbt -> {
             return nbt.getOrDefault("internalName", "NONE");
         });
     }
 
-    public ItemBuilderAPI setLore(int index, String lore) {
-        List<String> lores = getLores();
-        if (index > lores.size()) {
-            lores.addAll(Collections.nCopies(index - lores.size(), "")); // Fill with empty strings
-        }
-
-        lores.set(index - 1, lore);
-        return setLores(lores);
-    }
-
     public ItemBuilderAPI setLores(List<String> lores) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
 
-        // Stream API to apply transformations
-        List<String> formattedLores = lores.stream()
-                .map(lore -> new TextAPI(lore).colorRecognise().build())
-                .collect(Collectors.toList());
+        List<String> modifiableLores = new ArrayList<>(lores);
+        modifiableLores.replaceAll(text -> new TextAPI(text).colorRecognise().build());
 
-        ItemMeta meta = getItemMeta();
-        meta.setLore(formattedLores);
-        setItemMeta(meta);
+        ItemMeta itemMeta = getItemMeta();
+        itemMeta.setLore(modifiableLores);
+        this.itemStack.setItemMeta(itemMeta);
+
         return this;
     }
 
     public List<String> getLores() {
-        ItemMeta meta = getItemMeta();
+        if (isInvalidItem()) return null;
 
-        if (!meta.hasLore()) return Collections.emptyList();
-
-        return new ArrayList<>(Optional.ofNullable(meta.getLore()).orElse(new ArrayList<>()));
+        ItemMeta itemMeta = getItemMeta();
+        return itemMeta.hasLore() ? new ArrayList<>(Optional.ofNullable(itemMeta.getLore()).orElse(new ArrayList<>())) : Collections.emptyList();
     }
 
-    public ItemBuilderAPI resetLore() {
+    public ItemBuilderAPI resetLores() {
+        if (isInvalidItem()) return null;
         return setLores(new ArrayList<>());
     }
 
+    public ItemBuilderAPI setLore(int index, String lore) {
+        if (isInvalidItem() || index <= 0) return null;
+
+        List<String> lores = new ArrayList<>(getLores());
+        while (index > lores.size()) lores.add("");
+        lores.set(index - 1, lore);
+
+        return setLores(lores);
+    }
+
     public ItemBuilderAPI removeLore(int index) {
+        if (isInvalidItem()) return null;
+
         List<String> lores = getLores();
+        if (index <= 0 || index >= lores.size()) return null;
 
-        // Ensure index is within valid range
-        if (isInvalidIndex(index, lores.size())) return this;
-
-        lores.remove(index - 1); // Adjust for 1-based index
-        return setLores(lores); // Method chaining for simplicity
+        lores.remove(index - 1);
+        return setLores(lores);
     }
 
     public ItemBuilderAPI moveLore(int oldIndex, int newIndex) {
-        if (oldIndex == newIndex) return this; // No need to move if indices are the same
+        if (isInvalidItem()) return null;
+        if (oldIndex == newIndex) return this;
 
         List<String> lores = getLores();
+        if (oldIndex <= 0 || oldIndex >= lores.size()) return null;
+        if (newIndex <= 0 || newIndex >= lores.size()) return null;
 
-        // Ensure both oldIndex and newIndex are valid
-        if (isInvalidIndex(oldIndex, lores.size()) || isInvalidIndex(newIndex, lores.size())) return this;
-
-        String lore = lores.remove(oldIndex - 1); // Remove from oldIndex (adjust for 1-based index)
-        lores.add(newIndex - 1, lore); // Add at newIndex
-
-        return setLores(lores); // Method chaining
-    }
-
-    public List<String> getDescriptionLores(String description, int maxLength) {
-        if (isInvalidItem()) return new ArrayList<>();
-        return Arrays.asList(ChatPaginator.wordWrap(new TextAPI(description).colorRecognise().build(), maxLength));
+        String lore = lores.remove(oldIndex - 1);
+        lores.add(newIndex - 1, lore);
+        return setLores(lores);
     }
 
     public ItemBuilderAPI setDescription(String description) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
+
         NBT.modify(this.itemStack, nbt -> {
             nbt.setString("description", description);
         });
         return this;
     }
 
+    public String getDescription() {
+        if (isInvalidItem()) return null;
+
+        NBT.modify(this.itemStack, nbt -> {
+            nbt.getOrDefault("description", "");
+        });
+        return "";
+    }
+
+    public List<String> getDescriptionAutoAlignLores(int maxLength) {
+        if (isInvalidItem()) return null;
+
+        return Arrays.asList(ChatPaginator.wordWrap(new TextAPI(this.description).colorRecognise().build(), maxLength));
+    }
+
     public ItemBuilderAPI setTier(Tier tier) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
-            TierAPI tierAPI = new TierAPI(this.itemStack);
-            tierAPI.setTier(tier);
-            this.tier = tier;
-            this.nearestTiers = tierAPI.getNearTiersCircle();
+            TierAPI tierAPI = new TierAPI(this.itemStack).setTier(tier);
+            this.tier = tierAPI.getTier();
+            this.nearestTiers = new TierAPI(this.itemStack).getNearTiersCircle();
         } catch (Exception e) {
-            Bukkit.getLogger().warning("Failed to set tier of item!");
+            Bukkit.getLogger().warning("Error while setting tier of the item!");
         }
         return this;
     }
@@ -505,21 +536,27 @@ public class ItemBuilderAPI {
     }
 
     public List<Tier> getNearestTiers() {
-        if (isInvalidItem()) return new ArrayList<>();
+        if (isInvalidItem()) return null;
         return this.nearestTiers;
     }
 
     public ItemBuilderAPI setCategory(Category category) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
-            CategoryAPI categoryAPI = new CategoryAPI(this.itemStack);
-            categoryAPI.setCategory(category);
-            this.category = category;
+            CategoryAPI categoryAPI = new CategoryAPI(this.itemStack).setCategory(category);
+            this.category = categoryAPI.getCategory();
             this.defaultCategory = categoryAPI.getDefaultCategory();
             this.nearestCategories = categoryAPI.getNearCategoriesCircle();
         } catch (Exception e) {
-            Bukkit.getLogger().warning("There ware something wrong while setting category of the item!");
+            Bukkit.getLogger().warning("Error while setting category of the item!");
         }
+        return this;
+    }
+
+    public ItemBuilderAPI setUnclassified(boolean value) {
+        if (isInvalidItem()) return null;
+        setCategory(value ? Category.UNCLASSIFIED : getDefaultCategory());
+        this.category = value ? Category.UNCLASSIFIED : getDefaultCategory();
         return this;
     }
 
@@ -534,16 +571,17 @@ public class ItemBuilderAPI {
     }
 
     public List<Category> getNearestCategories() {
-        if (isInvalidItem()) return new ArrayList<>();
+        if (isInvalidItem()) return null;
         return this.nearestCategories;
     }
 
     public ItemBuilderAPI setDungeonItem(boolean value) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
             new ItemUtilsAPI(this.itemStack).setDungeonItem(value);
+            this.isDungeonItem = value;
         } catch (Exception e) {
-            Bukkit.getLogger().warning("There ware something wrong while setting dungeon item!");
+            Bukkit.getLogger().warning("Error while setting dungeon item!");
         }
         return this;
     }
@@ -554,11 +592,12 @@ public class ItemBuilderAPI {
     }
 
     public ItemBuilderAPI setLoreNumbered(boolean value) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
             new ItemUtilsAPI(this.itemStack).setLoreNumbered(value);
+            this.isLoreNumbered = value;
         } catch (Exception e) {
-            Bukkit.getLogger().warning("There ware something wrong while setting lore numbered of item!");
+            Bukkit.getLogger().warning("Error while setting lore numbered of item!");
         }
         return this;
     }
@@ -569,12 +608,16 @@ public class ItemBuilderAPI {
     }
 
     public ItemBuilderAPI setGlowing(boolean value) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
             new ItemUtilsAPI(this.itemStack).setGlowing(value);
-            getItemMeta().setEnchantmentGlintOverride(value);
+            this.isGlowing = value;
+
+            ItemMeta itemMeta = getItemMeta();
+            itemMeta.setEnchantmentGlintOverride(value);
+            this.itemStack.setItemMeta(itemMeta);
         } catch (Exception e) {
-            Bukkit.getLogger().warning("There ware something wrong while sett item glowing!");
+            Bukkit.getLogger().warning("Error while setting item glowing!");
         }
         return this;
     }
@@ -585,11 +628,12 @@ public class ItemBuilderAPI {
     }
 
     public ItemBuilderAPI setUnique(boolean value) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
             new ItemUtilsAPI(this.itemStack).setUnique(value);
+            this.isUnique = value;
         } catch (Exception e) {
-            Bukkit.getLogger().warning("There ware something wrong while setting unique of item!");
+            Bukkit.getLogger().warning("Error while setting unique of item!");
         }
         return this;
     }
@@ -600,11 +644,12 @@ public class ItemBuilderAPI {
     }
 
     public ItemBuilderAPI setRecombobulated(boolean value) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
             new ItemUtilsAPI(this.itemStack).setRecombobulated(value);
+            this.isRecombobulated = value;
         } catch (Exception e) {
-            Bukkit.getLogger().warning("There ware something wrong while recombobulating item!");
+            Bukkit.getLogger().warning("Error while recombobulating item!");
         }
         return this;
     }
@@ -615,11 +660,12 @@ public class ItemBuilderAPI {
     }
 
     public ItemBuilderAPI setTimestamp(boolean value) {
-        if (isInvalidItem()) return this;
+        if (isInvalidItem()) return null;
         try {
-            new ItemUtilsAPI(this.itemStack).setTimestamp(value);
+            ItemUtilsAPI itemUtilsAPI = new ItemUtilsAPI(this.itemStack).setTimestamp(value);
+            this.timestamp = itemUtilsAPI.getTimestamp();
         } catch (Exception e) {
-            Bukkit.getLogger().warning("There ware something wrong while setting timestamp of item!");
+            Bukkit.getLogger().warning("Error while setting timestamp of item!");
         }
         return this;
     }
@@ -630,10 +676,6 @@ public class ItemBuilderAPI {
     }
 
     private boolean isInvalidItem() {
-        return getType() == Material.AIR;
-    }
-
-    private boolean isInvalidIndex(int index, int size) {
-        return index < 1 || index > size;
+        return this.itemStack == null || getType() == Material.AIR;
     }
 }
