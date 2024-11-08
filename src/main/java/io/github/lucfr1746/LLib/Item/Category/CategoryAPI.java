@@ -2,8 +2,11 @@ package io.github.lucfr1746.LLib.Item.Category;
 
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
+import io.github.lucfr1746.LLib.Item.Tier.Tier;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -12,29 +15,22 @@ import java.util.List;
 public class CategoryAPI {
 
     private final ItemStack itemStack;
-    private Category currentCategory;
-
-    public @NotNull ItemStack getItemStack() {
-        return this.itemStack;
-    }
 
     public CategoryAPI(@NotNull ItemStack itemStack) {
         this.itemStack = itemStack;
-        this.currentCategory = getCategory();
     }
 
     public CategoryAPI setCategory(@NotNull Category category) {
         if (this.itemStack.getType() == Material.AIR) return this;
         NBT.modify(this.itemStack, nbt -> {
             nbt.getOrCreateCompound("ExtraAttributes").setString("category", category.name());
-            this.currentCategory = category;
         });
         return this;
     }
 
     public Category getCategory() {
         if (this.itemStack.getType() == Material.AIR) return Category.UNCLASSIFIED;
-        return NBT.modify(itemStack, nbt -> {
+        return NBT.modify(this.itemStack, nbt -> {
             ReadWriteNBT nbtList = nbt.getOrCreateCompound("ExtraAttributes");
             if (!nbtList.hasTag("category")) {
                 nbtList.setString("category", getDefaultCategory().name());
@@ -50,14 +46,10 @@ public class CategoryAPI {
     public Category getDefaultCategory() {
         String[] types = this.itemStack.getType().toString().split("_");
         String typeSuffix = types[types.length - 1];
-
-        for (Category category : Category.values()) {
-            if (category.name().equals(typeSuffix)) {
-                return category;
-            }
-        }
-
-        return Category.NONE;
+        return Arrays.stream(Category.values())
+                .filter(category -> category.name().equals(typeSuffix))
+                .findFirst()
+                .orElse(Category.NONE);
     }
 
     public List<Category> getNearCategoriesCircle() {
