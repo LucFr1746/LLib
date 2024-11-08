@@ -2,6 +2,8 @@ package io.github.lucfr1746.LLib.Item.Tier;
 
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
+import io.github.lucfr1746.LLib.Item.Category.Category;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -14,20 +16,17 @@ public class TierAPI {
     private final ItemStack itemStack;
     private final Tier currentTier;
 
-    public @NotNull ItemStack getItemStack() {
-        return itemStack;
-    }
-
     public TierAPI(@NotNull ItemStack itemStack) {
         this.itemStack = itemStack;
         this.currentTier = getTier();
     }
 
-    public void setTier(@NotNull Tier tier) {
-        if (this.itemStack.getType() == Material.AIR) return;
+    public TierAPI setTier(@NotNull Tier tier) {
+        if (this.itemStack.getType() == Material.AIR) return this;
         NBT.modify(itemStack, nbt -> {
             nbt.getOrCreateCompound("ExtraAttributes").setString("tier", tier.toString());
         });
+        return this;
     }
 
     public Tier getTier() {
